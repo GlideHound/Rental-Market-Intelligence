@@ -3,6 +3,10 @@ import json
 import pandas as pd
 
 # listens and captures the graphql api response, converts api response into data
+# Name:
+# Purpose:
+# Parameters:
+# Returns:
 def handle_response(response):
     # create the empty list item, we will append to it later
     items = []
