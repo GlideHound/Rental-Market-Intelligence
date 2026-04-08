@@ -1,8 +1,9 @@
 from playwright.sync_api import sync_playwright
 import json
 
+# list view
 
-def open_browser_and_fetch(url: str):
+def open_browser_and_fetch(url: str, first_value: int):
     auth_header = None
 
     with sync_playwright() as p:
@@ -14,7 +15,6 @@ def open_browser_and_fetch(url: str):
 
             if request.url == "https://rentals.ca/graphql":
                 headers = request.headers
-
                 if "authorization" in headers:
                     auth_header = headers["authorization"]
                     print("Captured authorization header")
@@ -31,23 +31,75 @@ def open_browser_and_fetch(url: str):
 
         payload = {
             "operationName": "RentalListingSearch",
-            "query": """query RentalListingSearch($last: PositiveInt, $first: PositiveInt, $place: PlaceInput!, $filters: RentalListingsConnectionFilterSet, $sortType: SortType) {
+            "query": """query RentalListingSearch($after: String, $before: String, $last: PositiveInt, $first: PositiveInt, $place: PlaceInput!, $filters: RentalListingsConnectionFilterSet, $sortType: SortType, $imagesStartIndex: Int, $imagesEndIndex: Int) {
   rentalListings(
+    after: $after
+    before: $before
     last: $last
     first: $first
     place: $place
     filters: $filters
     sortType: $sortType
   ) {
+    cities {
+      id
+      name
+      path
+      regionCode
+      __typename
+    }
     meta {
       ...MetaFrag
+      ...FocusFrag
+      __typename
+    }
+    pageInfo {
+      ...PageInfoFrag
       __typename
     }
     edges {
       node {
-        id
-        location
-        rentRange
+        ...RentalAddressFrag
+        ...RentalFloorPlansFrag
+        ...RentalImageFrag
+        ...RentalListingFrag
+        ...RentalPromotionsBadgeFrag
+        building {
+          yearBuilt
+          yearRenovated
+          clearanceHeight
+          class
+          size
+          stories
+          totalUnits
+          isCertified
+          __typename
+        }
+        tours {
+          type
+          __typename
+        }
+        bookables {
+          name
+          url
+          type
+          __typename
+        }
+        contact {
+          name
+          phoneNumber
+          email
+          __typename
+        }
+        images(startIndex: $imagesStartIndex, endIndex: $imagesEndIndex) {
+          caption
+          tags
+          scales
+          __typename
+        }
+        priority
+        petOptions
+        type
         __typename
       }
       __typename
@@ -55,20 +107,129 @@ def open_browser_and_fetch(url: str):
     __typename
   }
 }
+fragment RentalAddressFrag on RentalListing {
+  address {
+    city {
+      id
+      __typename
+    }
+    neighbourhood {
+      name
+      path
+      __typename
+    }
+    postalCode
+    street
+    __typename
+  }
+  __typename
+}
+fragment RentalFloorPlansFrag on RentalListing {
+  floorPlans {
+    beds
+    baths
+    rent
+    size
+    furnished
+    availability
+    externalId
+    parkingSpots
+    __typename
+  }
+  __typename
+}
+fragment FocusFrag on RentalListingsMeta {
+  focusedPlace {
+    __typename
+    ... on City {
+      id
+      location
+      name
+      slug
+      __typename
+    }
+    ... on Neighbourhood {
+      boundaries
+      id
+      location
+      name
+      slug
+      city {
+        id
+        name
+        slug
+        __typename
+      }
+      __typename
+    }
+  }
+  __typename
+}
+fragment RentalImageFrag on RentalListing {
+  image {
+    caption
+    scales
+    __typename
+  }
+  __typename
+}
+fragment RentalListingFrag on RentalListing {
+  bathsRange
+  bedsRange
+  created
+  highlightStatus
+  id
+  imagesCount
+  listingType
+  location
+  modified
+  name
+  path
+  priority
+  rentRange
+  sizeRange
+  type
+  verified
+  parking {
+    parkingTypes {
+      parkingType
+      monthlyRate
+      __typename
+    }
+    parkingSpotsPerRental
+    visitorParking
+    __typename
+  }
+  __typename
+}
 fragment MetaFrag on RentalListingsMeta {
   totalCount
   totalFloorPlanCount
   __typename
+}
+fragment PageInfoFrag on PageInfo {
+  __typename
+  endCursor
+  hasNextPage
+  hasPreviousPage
+  startCursor
+}
+fragment RentalPromotionsBadgeFrag on RentalListing {
+  promotions {
+    category
+    startDate
+    endDate
+    __typename
+  }
+  __typename
 }""",
             "variables": {
                 "filters": {},
-                "first": 2000, # max limit 2000
+                "first": first_value,
                 "place": {
-                    "namedAreaDistance": {
-                        "distance": 2000, # initially 20000, change it to see the total count change
-                        "namedArea": "toronto, on, ca"
-                    }
-                }
+                    "namedArea": "toronto, on, ca"
+                },
+                "sortType": "relevant"
             }
         }
 
@@ -79,8 +240,8 @@ fragment MetaFrag on RentalListingsMeta {
                     method: "POST",
                     credentials: "include",
                     headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": authHeader
+                        "content-type": "application/json",
+                        "authorization": authHeader
                     },
                     body: JSON.stringify(payload)
                 });
@@ -96,14 +257,17 @@ fragment MetaFrag on RentalListingsMeta {
 
 
 if __name__ == "__main__":
-    data = open_browser_and_fetch("https://rentals.ca/toronto")
-    
-    if data.get("data") and data["data"].get("rentalListings"):
+    data = open_browser_and_fetch("https://rentals.ca/toronto", 2000)
+
+    if data and data.get("data") and data["data"].get("rentalListings"):
         meta = data["data"]["rentalListings"]["meta"]
         edges = data["data"]["rentalListings"]["edges"]
-        
+        page_info = data["data"]["rentalListings"]["pageInfo"]
+
         print("Total count:", meta["totalCount"])
         print("Returned rows:", len(edges))
+        print("Has next page:", page_info["hasNextPage"])
+        print("End cursor:", page_info["endCursor"])
     else:
         print("Request failed")
         print(json.dumps(data, indent=2))
