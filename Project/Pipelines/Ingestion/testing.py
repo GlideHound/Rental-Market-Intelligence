@@ -62,10 +62,10 @@ fragment MetaFrag on RentalListingsMeta {
 }""",
             "variables": {
                 "filters": {},
-                "first": 3000, # change this value
+                "first": 2000, # max limit 2000
                 "place": {
                     "namedAreaDistance": {
-                        "distance": 20000,
+                        "distance": 2000, # initially 20000, change it to see the total count change
                         "namedArea": "toronto, on, ca"
                     }
                 }
@@ -98,8 +98,12 @@ fragment MetaFrag on RentalListingsMeta {
 if __name__ == "__main__":
     data = open_browser_and_fetch("https://rentals.ca/toronto")
     
-    meta = data["data"]["rentalListings"]["meta"]
-    edges = data["data"]["rentalListings"]["edges"]
-    
-    print("Total count:", meta["totalCount"])
-    print("Returned rows:", len(edges))
+    if data.get("data") and data["data"].get("rentalListings"):
+        meta = data["data"]["rentalListings"]["meta"]
+        edges = data["data"]["rentalListings"]["edges"]
+        
+        print("Total count:", meta["totalCount"])
+        print("Returned rows:", len(edges))
+    else:
+        print("Request failed")
+        print(json.dumps(data, indent=2))
