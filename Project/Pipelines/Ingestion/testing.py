@@ -306,3 +306,5 @@ if __name__ == "__main__":
         browser.close()
 
     print("\nFinal unique listings:", len(all_nodes))
+
+    # next step: put loop inside a function, store data in pandas dataframe
