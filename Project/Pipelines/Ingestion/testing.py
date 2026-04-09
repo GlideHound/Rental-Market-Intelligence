@@ -3,35 +3,27 @@ import json
 
 # list view
 
-def open_browser_and_fetch(url: str, first_value: int, after_cursor=None):
+def capture_auth(page, url):
     auth_header = None
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+    def handle_request(request):
+        nonlocal auth_header
+        if request.url == "https://rentals.ca/graphql":
+            headers = request.headers
+            if "authorization" in headers:
+                auth_header = headers["authorization"]
+                print("Captured authorization header")
 
-        def handle_request(request):
-            nonlocal auth_header
+    page.on("request", handle_request)
+    page.goto(url)
+    page.wait_for_timeout(5000)
 
-            if request.url == "https://rentals.ca/graphql":
-                headers = request.headers
-                if "authorization" in headers:
-                    auth_header = headers["authorization"]
-                    print("Captured authorization header")
+    return auth_header
 
-        page.on("request", handle_request)
-
-        page.goto(url)
-        page.wait_for_timeout(5000)
-
-        if auth_header is None:
-            print("Could not capture authorization header")
-            browser.close()
-            return None
-
-        payload = {
-            "operationName": "RentalListingSearch",
-            "query": """query RentalListingSearch($after: String, $before: String, $last: PositiveInt, $first: PositiveInt, $place: PlaceInput!, $filters: RentalListingsConnectionFilterSet, $sortType: SortType, $imagesStartIndex: Int, $imagesEndIndex: Int) {
+def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
+    payload = {
+        "operationName": "RentalListingSearch",
+        "query": """query RentalListingSearch($after: String, $before: String, $last: PositiveInt, $first: PositiveInt, $place: PlaceInput!, $filters: RentalListingsConnectionFilterSet, $sortType: SortType, $imagesStartIndex: Int, $imagesEndIndex: Int) {
   rentalListings(
     after: $after
     before: $before
@@ -223,85 +215,94 @@ fragment RentalPromotionsBadgeFrag on RentalListing {
   }
   __typename
 }""",
-            "variables": {
-                "after": after_cursor,
-                "filters": {},
-                "first": first_value,
-                "place": {
-                    "namedArea": "toronto, on, ca"
-                },
-                "sortType": "cheapest" # relevant, cheapest, expensive
-            }
+        "variables": {
+            "after": after_cursor,
+            "filters": {},
+            "first": first_value,
+            "place": {
+                "namedArea": "toronto, on, ca"
+            },
+            "sortType": "cheapest"
         }
+    }
 
-        data = page.evaluate(
-            """
-            async ({payload, authHeader}) => {
-                const response = await fetch("https://rentals.ca/graphql", {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "content-type": "application/json",
-                        "authorization": authHeader
-                    },
-                    body: JSON.stringify(payload)
-                });
+    data = page.evaluate(
+        """
+        async ({payload, authHeader}) => {
+            const response = await fetch("https://rentals.ca/graphql", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "content-type": "application/json",
+                    "authorization": authHeader
+                },
+                body: JSON.stringify(payload)
+            });
 
-                return await response.json();
-            }
-            """,
-            {"payload": payload, "authHeader": auth_header}
-        )
+            return await response.json();
+        }
+        """,
+        {"payload": payload, "authHeader": auth_header}
+    )
 
-        browser.close()
-        return data
-
+    return data
 
 if __name__ == "__main__":
-  cursor = None
-  seen_ids = set()
-  all_nodes = []
-  batch_num = 1
+    cursor = None
+    seen_ids = set()
+    all_nodes = []
+    batch_num = 1
 
-  while True:
-    data = open_browser_and_fetch("https://rentals.ca/toronto", 2000, cursor)
-    
-    if not data or "data" not in data or "rentalListings" not in data["data"]:
-      print("Request failed")
-      print(json.dumps(data, indent=2))
-      break
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
 
-    rental_listings = data["data"]["rentalListings"]
-    edges = rental_listings["edges"]
-    page_info = rental_listings["pageInfo"]
-    meta = rental_listings["meta"]
+        auth_header = capture_auth(page, "https://rentals.ca/toronto")
 
-    print(f"\nBatch {batch_num}")
-    print("Total count:", meta["totalCount"])
-    print("Rows returned:", len(edges))
-    print("Has next page:", page_info["hasNextPage"])
-    print("End cursor:", page_info["endCursor"])
+        if auth_header is None:
+            print("Could not capture authorization header")
+        else:
+            while True:
+                data = fetch_one_batch(page, auth_header, 2000, cursor)
 
-    new_count = 0
+                if not data or "data" not in data or "rentalListings" not in data["data"]:
+                    print("Request failed")
+                    print(json.dumps(data, indent=2))
+                    break
 
-    for edge in edges:
-      node = edge["node"]
-      listing_id = node["id"]
-      
-      if listing_id in seen_ids:
-        continue
+                rental_listings = data["data"]["rentalListings"]
+                edges = rental_listings["edges"]
+                page_info = rental_listings["pageInfo"]
+                meta = rental_listings["meta"]
 
-      seen_ids.add(listing_id)
-      all_nodes.append(node)
-      new_count += 1
+                print(f"\nBatch {batch_num}")
+                print("Total count:", meta["totalCount"])
+                print("Rows returned:", len(edges))
+                print("Has next page:", page_info["hasNextPage"])
+                print("End cursor:", page_info["endCursor"])
 
-    print("New unique rows added:", new_count)
-    print("Unique total so far:", len(all_nodes))
+                new_count = 0
 
-    if not page_info["hasNextPage"]:
-      break
+                for edge in edges:
+                    node = edge["node"]
+                    listing_id = node["id"]
 
-    cursor = page_info["endCursor"]
-    batch_num += 1
+                    if listing_id in seen_ids:
+                        continue
 
-  print("\nFinal unique listings:", len(all_nodes))
+                    seen_ids.add(listing_id)
+                    all_nodes.append(node)
+                    new_count += 1
+
+                print("New unique rows added:", new_count)
+                print("Unique total so far:", len(all_nodes))
+
+                if not page_info["hasNextPage"]:
+                    break
+
+                cursor = page_info["endCursor"]
+                batch_num += 1
+
+        browser.close()
+
+    print("\nFinal unique listings:", len(all_nodes))
