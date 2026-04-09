@@ -3,7 +3,7 @@ import json
 
 # list view
 
-def open_browser_and_fetch(url: str, first_value: int):
+def open_browser_and_fetch(url: str, first_value: int, after_cursor=None):
     auth_header = None
 
     with sync_playwright() as p:
@@ -224,12 +224,13 @@ fragment RentalPromotionsBadgeFrag on RentalListing {
   __typename
 }""",
             "variables": {
+                "after": after_cursor,
                 "filters": {},
                 "first": first_value,
                 "place": {
                     "namedArea": "toronto, on, ca"
                 },
-                "sortType": "relevant"
+                "sortType": "cheapest" # relevant, cheapest, expensive
             }
         }
 
@@ -257,17 +258,50 @@ fragment RentalPromotionsBadgeFrag on RentalListing {
 
 
 if __name__ == "__main__":
-    data = open_browser_and_fetch("https://rentals.ca/toronto", 2000)
+  cursor = None
+  seen_ids = set()
+  all_nodes = []
+  batch_num = 1
 
-    if data and data.get("data") and data["data"].get("rentalListings"):
-        meta = data["data"]["rentalListings"]["meta"]
-        edges = data["data"]["rentalListings"]["edges"]
-        page_info = data["data"]["rentalListings"]["pageInfo"]
+  while True:
+    data = open_browser_and_fetch("https://rentals.ca/toronto", 2000, cursor)
+    
+    if not data or "data" not in data or "rentalListings" not in data["data"]:
+      print("Request failed")
+      print(json.dumps(data, indent=2))
+      break
 
-        print("Total count:", meta["totalCount"])
-        print("Returned rows:", len(edges))
-        print("Has next page:", page_info["hasNextPage"])
-        print("End cursor:", page_info["endCursor"])
-    else:
-        print("Request failed")
-        print(json.dumps(data, indent=2))
+    rental_listings = data["data"]["rentalListings"]
+    edges = rental_listings["edges"]
+    page_info = rental_listings["pageInfo"]
+    meta = rental_listings["meta"]
+
+    print(f"\nBatch {batch_num}")
+    print("Total count:", meta["totalCount"])
+    print("Rows returned:", len(edges))
+    print("Has next page:", page_info["hasNextPage"])
+    print("End cursor:", page_info["endCursor"])
+
+    new_count = 0
+
+    for edge in edges:
+      node = edge["node"]
+      listing_id = node["id"]
+      
+      if listing_id in seen_ids:
+        continue
+
+      seen_ids.add(listing_id)
+      all_nodes.append(node)
+      new_count += 1
+
+    print("New unique rows added:", new_count)
+    print("Unique total so far:", len(all_nodes))
+
+    if not page_info["hasNextPage"]:
+      break
+
+    cursor = page_info["endCursor"]
+    batch_num += 1
+
+  print("\nFinal unique listings:", len(all_nodes))
