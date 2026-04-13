@@ -253,6 +253,7 @@ if __name__ == "__main__":
     all_nodes = []
     batch_num = 1
 
+    # try implement this part into a seperate function
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
