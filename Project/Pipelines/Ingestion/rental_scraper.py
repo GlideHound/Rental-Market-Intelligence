@@ -1,4 +1,6 @@
 from playwright.sync_api import sync_playwright
+from pathlib import Path
+import pandas as pd
 import json
 
 graphql_url = "https://rentals.ca/graphql"
@@ -88,9 +90,11 @@ def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
     return data
 
 # Name: fetch_all_batches()
-# Purpose: 
-# Parameters: 
-# Returns: 
+# Purpose: This function loops through all the batches and returns the scraped data
+# Parameters: page: This is the tab opened with the website url
+#             auth_header: This is the authorization header we captured
+#             first_value: This is the maximum number of entries of data we want in a batch
+# Returns: A python list that contains all the scraped data
 def fetch_all_batches(page, auth_header, first_value=2000):
     cursor = None
     seen_ids = set()
@@ -118,6 +122,7 @@ def fetch_all_batches(page, auth_header, first_value=2000):
             all_nodes.append(node)
             new_count += 1
         
+        # can delete or comment out later since these are for sanity check purpose
         print(f"\nBatch {batch_num}")
         print("Total count:", meta["totalCount"])
         print("Rows returned:", len(edges))
@@ -132,5 +137,63 @@ def fetch_all_batches(page, auth_header, first_value=2000):
         cursor = page_info["endCursor"]
         batch_num += 1
 
+    return all_nodes
+
+# Name: build_df()
+# Purpose: This function builds the pandas df
+# Parameters: 
+# Returns:
+def build_df(all_nodes: list):
+
+    def extract_row(node):
+        return {
+            "name": node["name"],
+            "listing_id": node["id"],
+            "address": node["address"],
+            "floor_plan": node["floorPlans"],
+            "created_date": node["created"],
+            "modified_date": node["modified"],
+            "highlight_status": node["highlightStatus"],
+            "images_count": node["imagesCount"],
+            "property_type": node["type"],
+            "verified": node["verified"],
+            "location": node["location"],
+            "parking": node["parking"],
+            "building": node["building"],
+            "contact": node["contact"],
+            "pet": node["petOptions"]
+        }
+    
+    rows = [extract_row(node) for node in all_nodes]
+    df = pd.DataFrame(rows)
+
+    return df
+
+
+# Name: main()
+# Purpose: The driver function
+# Parameters: 
+# Returns:
+def main():
+    p, browser, page = open_browser(target_url)
+    auth_header = capture_auth_header(page)
+
+    if auth_header is None:
+        print("Did not capture authorization header")
+        browser.close()
+        p.stop()
+        return
+
+    all_nodes = fetch_all_batches(page, auth_header, first_value=2000)
+    df = build_df(all_nodes)
+    
+    base_dir = Path(__file__).resolve().parents[2]
+    output_path = base_dir / "Data" / "Raw" / "toronto_rentals.csv"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_path, index=False)
+
+    browser.close()
+    p.stop()
+
 if __name__ == "__main__":
-    open_browser()
+    main()

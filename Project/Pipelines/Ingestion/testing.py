@@ -207,11 +207,10 @@ fragment RentalPromotionsBadgeFrag on RentalListing {
 }
 """
 
-# Name: open_browser()
-# Purpose: This function opens a headless chrome browser, accesses the rental.ca website and calls
-#          the API to scrape data
+# Name: capture_auth_header()
+# Purpose: This function 
 # Parameters: url (str): This is the url of the website we wish to scrape
-# Returns: One python list with all the scraped data
+# Returns: 
 def capture_auth_header(page, url: str):
     auth_header = None
 
