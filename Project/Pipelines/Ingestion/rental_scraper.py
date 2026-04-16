@@ -39,10 +39,14 @@ def capture_auth_header(page):
 
     return auth_state["auth_header"]
 
-# Name:
-# Purpose:
-# Parameters:
-# Returns:
+# Name: fetch_one_batch()
+# Purpose: This function defines the payload and sends api request to get one batch of data returned
+#          in json format
+# Parameters: page: This is the tab opened with the website url
+#             auth_header: This is the authorization header we captured
+#             first_value: This is the maximum number of entries of data we want in a batch
+#             after_cursor: This is the after cursor key we will use later in pagination
+# Returns: Scraped rental listings in json format
 def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
     payload = {
         "operationName": "RentalListingSearch",
@@ -59,9 +63,74 @@ def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
     }
 
     data = page.evaluate(
-
+        """
+        async ({graphqlUrl, authHeader, payload}) => {
+            const response = await fetch(graphqlUrl, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "content-type": "application/json",
+                    "authorization": authHeader
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            return await response.json();
+        }
+        """,
+        {
+            "graphqlUrl": graphql_url,
+            "authHeader": auth_header,
+            "payload": payload
+        }
     )
 
+    return data
+
+# Name: fetch_all_batches()
+# Purpose: 
+# Parameters: 
+# Returns: 
+def fetch_all_batches(page, auth_header, first_value=2000):
+    cursor = None
+    seen_ids = set()
+    all_nodes = []
+    batch_num = 1
+
+    while True:
+        data = fetch_one_batch(page, auth_header, first_value, cursor)
+
+        rental_listings = data["data"]["rentalListings"]
+        meta = rental_listings["meta"]
+        edges = rental_listings["edges"]
+        page_info = rental_listings["pageInfo"]
+
+        new_count = 0
+
+        for edge in edges:
+            node = edge["node"]
+            listing_id = node["id"]
+
+            if listing_id in seen_ids:
+                continue
+
+            seen_ids.add(listing_id)
+            all_nodes.append(node)
+            new_count += 1
+        
+        print(f"\nBatch {batch_num}")
+        print("Total count:", meta["totalCount"])
+        print("Rows returned:", len(edges))
+        print("Has next page:", page_info["hasNextPage"])
+        print("End cursor:", page_info["endCursor"])
+        print("New unique rows added:", new_count)
+        print("Unique total so far:", len(all_nodes))
+
+        if page_info["hasNextPage"] == False:
+            break
+
+        cursor = page_info["endCursor"]
+        batch_num += 1
 
 if __name__ == "__main__":
     open_browser()
