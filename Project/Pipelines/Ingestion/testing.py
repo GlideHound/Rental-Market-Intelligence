@@ -1,10 +1,8 @@
 from playwright.sync_api import sync_playwright
 import json
 
-
 GRAPHQL_URL = "https://rentals.ca/graphql"
 TARGET_URL = "https://rentals.ca/toronto"
-
 
 QUERY = """
 query RentalListingSearch($after: String, $before: String, $last: PositiveInt, $first: PositiveInt, $place: PlaceInput!, $filters: RentalListingsConnectionFilterSet, $sortType: SortType, $imagesStartIndex: Int, $imagesEndIndex: Int) {
@@ -209,7 +207,11 @@ fragment RentalPromotionsBadgeFrag on RentalListing {
 }
 """
 
-
+# Name: open_browser()
+# Purpose: This function opens a headless chrome browser, accesses the rental.ca website and calls
+#          the API to scrape data
+# Parameters: url (str): This is the url of the website we wish to scrape
+# Returns: One python list with all the scraped data
 def capture_auth_header(page, url: str):
     auth_header = None
 
@@ -345,5 +347,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# get rid of def main(), wrap it in another function
