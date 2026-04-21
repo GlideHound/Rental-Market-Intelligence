@@ -146,10 +146,25 @@ def fetch_all_batches(page, auth_header, first_value=2000):
 def build_df(all_nodes: list):
 
     def extract_row(node):
+        address = node.get("address", {})
+        location = node.get("location", [None, None])
+        rentRange = node.get("rentRange", [None, None])
+        bedsRange = node.get("bedsRange", [None, None])
+        bathRange = node.get("bathsRange", [None, None])
+
         return {
             "name": node["name"],
             "listing_id": node["id"],
-            "address": node["address"],
+            "street": address.get("street"),
+            "postal_code": address.get("postalCode"),
+            "longitude": location[0],
+            "latitude": location[1],
+            "rent_min": rentRange[0],
+            "rent_max": rentRange[1],
+            "beds_min": bedsRange[0],
+            "beds_max": bedsRange[1],
+            "bath_min": bathRange[0],
+            "bath_max": bathRange[1],
             "floor_plan": node["floorPlans"],
             "created_date": node["created"],
             "modified_date": node["modified"],
@@ -157,12 +172,13 @@ def build_df(all_nodes: list):
             "images_count": node["imagesCount"],
             "property_type": node["type"],
             "verified": node["verified"],
-            "location": node["location"],
             "parking": node["parking"],
             "building": node["building"],
             "contact": node["contact"],
             "pet": node["petOptions"]
         }
+    
+    # need to work on these
     
     rows = [extract_row(node) for node in all_nodes]
     df = pd.DataFrame(rows)
@@ -172,8 +188,8 @@ def build_df(all_nodes: list):
 
 # Name: main()
 # Purpose: The driver function
-# Parameters: 
-# Returns:
+# Parameters: None
+# Returns: None
 def main():
     p, browser, page = open_browser(target_url)
     auth_header = capture_auth_header(page)
