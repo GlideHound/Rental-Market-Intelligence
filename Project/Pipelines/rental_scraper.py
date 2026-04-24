@@ -223,9 +223,10 @@ def fetch_all_batches(page, auth_header, first_value=2000):
     return all_nodes
 
 # Name: build_df()
-# Purpose: This function builds the pandas df
-# Parameters: 
-# Returns:
+# Purpose: This function flattens the dictionaries and lists in the returned json data file
+#          and put them into the corresponding columns of a created pandas dataframe
+# Parameters: all_nodes (list): This is the list of all the nodes extracted
+# Returns: A pandas dataframe that contains all the data returned by API call
 def build_df(all_nodes: list):
 
     def extract_row(node):
