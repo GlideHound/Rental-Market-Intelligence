@@ -5,7 +5,88 @@ import json
 
 graphql_url = "https://rentals.ca/graphql"
 target_url = "https://rentals.ca/toronto"
-query = "query RentalListingSearch($after: String, $before: String, $last: PositiveInt, $first: PositiveInt, $place: PlaceInput!, $filters: RentalListingsConnectionFilterSet, $sortType: SortType, $imagesStartIndex: Int, $imagesEndIndex: Int) {\n  rentalListings(\n    after: $after\n    before: $before\n    last: $last\n    first: $first\n    place: $place\n    filters: $filters\n    sortType: $sortType\n  ) {\n    cities {\n      id\n      name\n      path\n      regionCode\n      __typename\n    }\n    meta {\n      ...MetaFrag\n      ...FocusFrag\n      __typename\n    }\n    pageInfo {\n      ...PageInfoFrag\n      __typename\n    }\n    edges {\n      node {\n        ...RentalAddressFrag\n        ...RentalFloorPlansFrag\n        ...RentalImageFrag\n        ...RentalListingFrag\n        ...RentalPromotionsBadgeFrag\n        building {\n          yearBuilt\n          yearRenovated\n          clearanceHeight\n          class\n          size\n          stories\n          totalUnits\n          isCertified\n          __typename\n        }\n        tours {\n          type\n          __typename\n        }\n        bookables {\n          name\n          url\n          type\n          __typename\n        }\n        contact {\n          name\n          phoneNumber\n          email\n          __typename\n        }\n        images(startIndex: $imagesStartIndex, endIndex: $imagesEndIndex) {\n          caption\n          tags\n          scales\n          __typename\n        }\n        priority\n        petOptions\n        type\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\nfragment RentalAddressFrag on RentalListing {\n  address {\n    city {\n      id\n      __typename\n    }\n    neighbourhood {\n      name\n      path\n      __typename\n    }\n    postalCode\n    street\n    __typename\n  }\n  __typename\n}\nfragment RentalFloorPlansFrag on RentalListing {\n  floorPlans {\n    beds\n    baths\n    rent\n    size\n    furnished\n    availability\n    externalId\n    parkingSpots\n    __typename\n  }\n  __typename\n}\nfragment FocusFrag on RentalListingsMeta {\n  focusedPlace {\n    __typename\n    ... on City {\n      id\n      location\n      name\n      slug\n      __typename\n    }\n    ... on Neighbourhood {\n      boundaries\n      id\n      location\n      name\n      slug\n      city {\n        id\n        name\n        slug\n        __typename\n      }\n      __typename\n    }\n  }\n  __typename\n}\nfragment RentalImageFrag on RentalListing {\n  image {\n    caption\n    scales\n    __typename\n  }\n  __typename\n}\nfragment RentalListingFrag on RentalListing {\n  bathsRange\n  bedsRange\n  created\n  highlightStatus\n  id\n  imagesCount\n  listingType\n  location\n  modified\n  name\n  path\n  priority\n  rentRange\n  sizeRange\n  type\n  verified\n  parking {\n    parkingTypes {\n      parkingType\n      monthlyRate\n      __typename\n    }\n    parkingSpotsPerRental\n    visitorParking\n    __typename\n  }\n  __typename\n}\nfragment MetaFrag on RentalListingsMeta {\n  totalCount\n  totalFloorPlanCount\n  __typename\n}\nfragment PageInfoFrag on PageInfo {\n  __typename\n  endCursor\n  hasNextPage\n  hasPreviousPage\n  startCursor\n}\nfragment RentalPromotionsBadgeFrag on RentalListing {\n  promotions {\n    category\n    startDate\n    endDate\n    __typename\n  }\n  __typename\n}"
+query = """
+query RentalListingSearch(
+  $after: String,
+  $before: String,
+  $last: PositiveInt,
+  $first: PositiveInt,
+  $place: PlaceInput!,
+  $filters: RentalListingsConnectionFilterSet,
+  $sortType: SortType
+) {
+  rentalListings(
+    after: $after
+    before: $before
+    last: $last
+    first: $first
+    place: $place
+    filters: $filters
+    sortType: $sortType
+  ) {
+    meta {
+      totalCount
+      totalFloorPlanCount
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      startCursor
+    }
+    edges {
+      node {
+        id
+        name
+        path
+        created
+        modified
+        highlightStatus
+        imagesCount
+        listingType
+        type
+        verified
+        priority
+        petOptions
+        location
+        rentRange
+        bedsRange
+        bathsRange
+        sizeRange
+
+        address {
+          postalCode
+          street
+          neighbourhood {
+            name
+            path
+          }
+          city {
+            id
+          }
+        }
+
+        parking {
+          parkingTypes {
+            parkingType
+            monthlyRate
+          }
+          parkingSpotsPerRental
+          visitorParking
+        }
+
+        building {
+          yearBuilt
+          yearRenovated
+          stories
+          totalUnits
+          isCertified
+        }
+      }
+    }
+  }
+}
+"""
 
 # Name: open_browser()
 # Purpose: This function opens playwright, creates a page and goes to the url to bypass cloudflare
