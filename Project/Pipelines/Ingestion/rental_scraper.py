@@ -3,6 +3,8 @@ from pathlib import Path
 import pandas as pd
 import json
 
+# currently it gets the listings for city of toronto
+
 graphql_url = "https://rentals.ca/graphql"
 target_url = "https://rentals.ca/toronto"
 query = """
@@ -233,8 +235,6 @@ def build_df(all_nodes: list):
         bedsRange = node.get("bedsRange") or [None, None]
         bathRange = node.get("bathsRange") or [None, None]
         sizeRange = node.get("sizeRange") or [None, None]
-        parking = node.get("parking", {})
-        building = node.get("building", {})
 
         return {
             "name": node["name"],
@@ -256,13 +256,7 @@ def build_df(all_nodes: list):
             "highlight_status": node["highlightStatus"],
             "images_count": node["imagesCount"],
             "property_type": node["type"],
-            "verified": node["verified"],
-            "parking_spot_number": parking.get("parkingSpotsPerRental"),
-            "visitor_parking": parking.get("visitorParking"),
-            "year_built": building.get("yearBuilt"),
-            "stories": building.get("stories"),
-            "total_units": building.get("totalUnits"),
-            "pet": node["petOptions"]
+            "verified": node["verified"]
         }
     
     rows = [extract_row(node) for node in all_nodes]
