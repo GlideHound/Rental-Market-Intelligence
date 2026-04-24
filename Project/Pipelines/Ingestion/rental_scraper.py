@@ -289,9 +289,9 @@ def main():
     df = build_df(all_nodes)
     
     base_dir = Path(__file__).resolve().parents[2]
-    output_path = base_dir / "Data" / "Raw" / "toronto_rentals.csv"
+    output_path = base_dir / "Data" / "Raw" / "toronto_rentals.parquet"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(output_path, index=False)
+    df.to_parquet(output_path, index=False)
 
     browser.close()
     p.stop()
