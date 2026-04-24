@@ -147,38 +147,42 @@ def build_df(all_nodes: list):
 
     def extract_row(node):
         address = node.get("address", {})
-        location = node.get("location", [None, None])
-        rentRange = node.get("rentRange", [None, None])
-        bedsRange = node.get("bedsRange", [None, None])
-        bathRange = node.get("bathsRange", [None, None])
+        location = node.get("location") or [None, None]
+        rentRange = node.get("rentRange") or [None, None]
+        bedsRange = node.get("bedsRange") or [None, None]
+        bathRange = node.get("bathsRange") or [None, None]
+        sizeRange = node.get("sizeRange") or [None, None]
+        parking = node.get("parking", {})
+        building = node.get("building", {})
 
         return {
             "name": node["name"],
             "listing_id": node["id"],
             "street": address.get("street"),
             "postal_code": address.get("postalCode"),
-            "longitude": location[0],
-            "latitude": location[1],
+            "longitude": location[0] if len(location) > 0 else None,
+            "latitude": location[1] if len(location) > 1 else None,
             "rent_min": rentRange[0],
             "rent_max": rentRange[1],
             "beds_min": bedsRange[0],
             "beds_max": bedsRange[1],
             "bath_min": bathRange[0],
             "bath_max": bathRange[1],
-            "floor_plan": node["floorPlans"],
+            "size_min": sizeRange[0] if len(sizeRange) > 0 else None,
+            "size_max": sizeRange[1] if len(sizeRange) > 1 else None,
             "created_date": node["created"],
             "modified_date": node["modified"],
             "highlight_status": node["highlightStatus"],
             "images_count": node["imagesCount"],
             "property_type": node["type"],
             "verified": node["verified"],
-            "parking": node["parking"],
-            "building": node["building"],
-            "contact": node["contact"],
+            "parking_spot_number": parking.get("parkingSpotsPerRental"),
+            "visitor_parking": parking.get("visitorParking"),
+            "year_built": building.get("yearBuilt"),
+            "stories": building.get("stories"),
+            "total_units": building.get("totalUnits"),
             "pet": node["petOptions"]
         }
-    
-    # need to work on these
     
     rows = [extract_row(node) for node in all_nodes]
     df = pd.DataFrame(rows)
