@@ -20,10 +20,10 @@ def create_db_engine():
     """
     Create SQLAlchemy engine for PostgreSQL connection.
     """
-    username = "nova"
-    database = "rental_market_project"
+    username = "username"
+    database = "database name"
 
-    connection_url = f"postgresql+psycopg2://{nova}@localhost:5432/{database}"
+    connection_url = f"postgresql+psycopg2://{username}@localhost:5432/{database}"
 
     engine = create_engine(connection_url)
     return engine
