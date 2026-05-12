@@ -25,6 +25,8 @@ Key goals include:
 ## Methodology
 
 ## Project Status
+Phase 1 - Data Ingestion finished
+Current learning PostgreSQL, expect delays in development
 
 ## Future Improvements
 
