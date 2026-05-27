@@ -1,7 +1,6 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 import pandas as pd
-import json
 
 # currently it gets the listings for city of toronto
 
@@ -214,7 +213,7 @@ def fetch_all_batches(page, auth_header, first_value=2000):
         print("New unique rows added:", new_count)
         print("Unique total so far:", len(all_nodes))
 
-        if page_info["hasNextPage"] == False:
+        if not page_info["hasNextPage"]:
             break
 
         cursor = page_info["endCursor"]
