@@ -48,11 +48,12 @@ def load_df_to_postgre(df: pd.DataFrame, engine):
 
     return None
 
-# Name: main()
-# Purpose: The driver function
+# Name: run_loader()
+# Purpose: run_loader() wires up everything in load_to_postgre.py and serves as the purpose of
+#          the main function
 # Parameters: None
 # Returns: None
-def main():
+def run_loader():
     base_dir = Path(__file__).resolve().parents[2]
     file_path_parquet = base_dir / "Data" / "Raw" / "toronto_rentals.parquet"
 
@@ -61,6 +62,13 @@ def main():
     load_df_to_postgre(df_raw, engine)
 
     return None
+
+# Name: main()
+# Purpose: The driver function
+# Parameters: None
+# Returns: None
+def main():
+    run_loader()
 
 if __name__ == "__main__":
     df_raw = main()
