@@ -17,9 +17,6 @@ def read_raw_parquet(file_path_parquet: Path):
 # Parameters: None
 # Returns: the connection
 def create_db_engine():
-    """
-    Create SQLAlchemy engine for PostgreSQL connection.
-    """
     username = "username"
     database = "database name"
 
