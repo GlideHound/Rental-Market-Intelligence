@@ -266,11 +266,12 @@ def build_df(all_nodes: list):
     return df
 
 
-# Name: main()
-# Purpose: The driver function
+# Name: run_ingestion()
+# Purpose: run_ingestion() wires up everything in rentals_ca_ingestion script and serves as
+#          the purpose of the driver function
 # Parameters: None
 # Returns: None
-def main():
+def run_ingestion():
     p, browser, page = open_browser(target_url)
     auth_header = capture_auth_header(page)
 
@@ -290,6 +291,13 @@ def main():
 
     browser.close()
     p.stop()
+
+# Name: main()
+# Purpose: the driver function
+# Parameters: None
+# Returns: None
+def main():
+    run_ingestion()
 
 if __name__ == "__main__":
     main()
