@@ -1,6 +1,8 @@
+import pandas as pd
+import os
+from dotenv import load_dotenv
 from pathlib import Path
 from sqlalchemy import create_engine
-import pandas as pd
 
 # Name: read_raw_parquet()
 # Purpose: read_raw_parquet() reads in the parquet file that contains the raw rental listings
@@ -17,13 +19,34 @@ def read_raw_parquet(file_path_parquet: Path):
 # Parameters: None
 # Returns: the connection
 def create_db_engine():
-    username = "username"
-    database = "database name"
+    load_dotenv()
 
-    connection_url = f"postgresql+psycopg2://{username}@localhost:5432/{database}"
+    username = os.getenv("POSTGRES_USER")
+    database = os.getenv("POSTGRES_DB")
+    host = os.getenv("POSTGRES_HOST")
+    port = os.getenv("POSTGRES_PORT")
+
+    connection_url = f"postgresql+psycopg2://{username}@{host}:{port}/{database}"
 
     engine = create_engine(connection_url)
     return engine
+
+# Name: 
+# Purpose: 
+# Parameters: 
+# Returns: 
+def load_df_to_postgre(df: pd.DataFrame, engine):
+    df.to_sql(
+        name = "rental_listings",
+        con = engine,
+        schema = "raw",
+        if_exists = "append",
+        index = False
+    )
+
+    print(f"Loaded {len(df)} rows into raw.rental_listings")
+
+    return None
 
 # Name: main()
 # Purpose: The driver function
@@ -34,8 +57,10 @@ def main():
     file_path_parquet = base_dir / "Data" / "Raw" / "toronto_rentals.parquet"
 
     df_raw = read_raw_parquet(file_path_parquet)
+    engine = create_db_engine()
+    load_df_to_postgre(df_raw, engine)
 
     return None
 
 if __name__ == "__main__":
-    main()
+    df_raw = main()
