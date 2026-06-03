@@ -2,6 +2,7 @@
 -- Purpose: clean and standardize the data from raw table
 -- We already handled deduplication of listing_id in API call phase, so don't worry about that
 
+-- In the future, check edge case values like rent price = 1
 DROP TABLE IF EXISTS staging.stg_rental_listings;
 
 CREATE TABLE staging.stg_rental_listings AS
@@ -61,5 +62,3 @@ WHERE listing_id IS NOT NULL
     AND name IS NOT NULL
     AND TRIM(name) <> ''
     AND (rent_min IS NOT NULL OR rent_max IS NOT NULL);
-
-SELECT listing_name FROM staging.stg_rental_listings LIMIT 20;

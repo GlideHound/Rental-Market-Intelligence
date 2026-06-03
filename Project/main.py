@@ -18,6 +18,7 @@ def main():
     run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "00_create_schemas.sql")
     run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "01_create_raw_rentals.sql")
     run_loader()
+    run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "02_create_staging_rentals.sql")
 
 if __name__ == "__main__":
     main()
