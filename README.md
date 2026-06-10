@@ -18,6 +18,26 @@ Key goals include:
 
 ## Research Questions
 
+## Logic
+Rent cleaning logic:
+
+1. If rent_min = 1 and rent_max is valid:
+   Treat rent_min as a placeholder.
+   Use rent_max as the usable rent value.
+
+2. If rent_min = 1 and rent_max is NULL:
+   No usable rent value.
+
+3. If rent_min and rent_max are both normal values:
+   Keep both and calculate rent_avg.
+
+4. If rent_min or rent_max is greater than 20000:
+   Do not remove or modify it in staging.
+   Keep it as-is because it may be a real luxury listing.
+
+5. If rent_min > rent_max:
+   Flag it as an invalid rent range.
+
 ## Project Structure
 
 ## Data Sources
