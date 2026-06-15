@@ -155,3 +155,46 @@ SELECT
     longitude,
     latitude
 FROM location_source;
+
+
+-- NEED MORE WORK DETERMINE THE AUXILIARY, CHECK ALL UNIQUE TYPES
+WITH property_source AS (
+    SELECT DISTINCT
+        COALESCE(property_type, 'unknown') AS property_type,
+        CASE
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%apartment%' THEN 'apartment'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%condo%' THEN 'condo'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%house%' THEN 'house'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%town%' THEN 'townhouse'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%basement%' THEN 'basement'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%room%' THEN 'room'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%garage%' THEN 'auxiliary'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%parking%' THEN 'auxiliary'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%storage%' THEN 'auxiliary'
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%locker%' THEN 'auxiliary'
+            ELSE 'other'
+        END AS property_group,
+
+        CASE
+            WHEN LOWER(COALESCE(property_type, '')) LIKE '%garage%'
+              OR LOWER(COALESCE(property_type, '')) LIKE '%parking%'
+              OR LOWER(COALESCE(property_type, '')) LIKE '%storage%'
+              OR LOWER(COALESCE(property_type, '')) LIKE '%locker%'
+                THEN TRUE
+            ELSE FALSE
+        END AS is_auxiliary_listing
+    FROM staging.stg_rental_listings
+)
+
+INSERT INTO warehouse.dim_property (
+    property_type,
+    property_group,
+    is_auxiliary_listing
+)
+SELECT 
+    property_type,
+    property_group,
+    is_auxiliary_listing
+FROM property_source;
+
+-- WRITE CTE FOR date, fact sheet and INSERT INTO statements for them
