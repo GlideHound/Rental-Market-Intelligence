@@ -157,32 +157,28 @@ SELECT
 FROM location_source;
 
 
--- NEED MORE WORK DETERMINE THE AUXILIARY, CHECK ALL UNIQUE TYPES
+-- need to check in future after we scale the data ingestion phase
 WITH property_source AS (
     SELECT DISTINCT
         COALESCE(property_type, 'unknown') AS property_type,
         CASE
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%apartment%' THEN 'apartment'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%condo%' THEN 'condo'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%house%' THEN 'house'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%town%' THEN 'townhouse'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%basement%' THEN 'basement'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%room%' THEN 'room'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%garage%' THEN 'auxiliary'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%parking%' THEN 'auxiliary'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%storage%' THEN 'auxiliary'
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%locker%' THEN 'auxiliary'
+            WHEN property_type IN ('house', 'single_family_home', 'main_floor')
+                THEN 'house'
+            WHEN property_type = 'apartment'
+                THEN 'apartment'
+            WHEN property_type IN ('condo', 'condo_community')
+                THEN 'condo'
+            WHEN property_type IN ('town_house', 'town_house_community')
+                THEN 'townhouse'
+            WHEN property_type IN ('duplex', 'triplex', 'fourplex', 'multi_unit')
+                THEN 'multi_unit'
+            WHEN property_type IN ('room', 'shared_room')
+                THEN 'room'
+            WHEN property_type IS NULL
+                THEN 'unknown'
             ELSE 'other'
         END AS property_group,
-
-        CASE
-            WHEN LOWER(COALESCE(property_type, '')) LIKE '%garage%'
-              OR LOWER(COALESCE(property_type, '')) LIKE '%parking%'
-              OR LOWER(COALESCE(property_type, '')) LIKE '%storage%'
-              OR LOWER(COALESCE(property_type, '')) LIKE '%locker%'
-                THEN TRUE
-            ELSE FALSE
-        END AS is_auxiliary_listing
+        FALSE AS is_auxiliary_listing
     FROM staging.stg_rental_listings
 )
 
