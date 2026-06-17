@@ -90,6 +90,7 @@ CREATE TABLE warehouse.fact_rental_listing_snapshot (
         REFERENCES warehouse.dim_date(date_key)
 );
 
+-- dim_listing CTE and insert statement
 WITH latest_listing AS (
     SELECT
         listing_id,
@@ -123,6 +124,7 @@ SELECT
 FROM latest_listing
 WHERE rn = 1;
 
+-- dim_location CTE and insert statement
 WITH location_source AS (
     SELECT DISTINCT
         street,
@@ -157,6 +159,7 @@ SELECT
 FROM location_source;
 
 
+-- dim_property CTE and insert statement
 -- need to check in future after we scale the data ingestion phase
 WITH property_source AS (
     SELECT DISTINCT
@@ -193,4 +196,32 @@ SELECT
     is_auxiliary_listing
 FROM property_source;
 
+-- dim_date CTE and insert statement
+WITH date_source AS (
+    SELECT DISTINCT
+        loaded_at::date AS full_date
+    FROM staging.stg_rental_listings
+    WHERE loaded_at IS NOT NULL
+)
+
+INSERT INTO warehouse.dim_date (
+    date_key,
+    full_date,
+    year,
+    month,
+    day,
+    quarter,
+    month_name,
+    day_of_week
+)
+SELECT
+    TO_CHAR(full_date, 'YYYYMMDD')::INTEGER AS date_key,
+    full_date,
+    EXTRACT(YEAR FROM full_date)::INTEGER AS year,
+    EXTRACT(MONTH FROM full_date)::INTEGER AS month,
+    EXTRACT(DAY FROM full_date)::INTEGER AS day,
+    EXTRACT(QUARTER FROM full_date)::INTEGER AS quarter,
+    TRIM(TO_CHAR(full_date, 'Month')) AS month_name,
+    TRIM(TO_CHAR(full_date, 'Day')) AS day_of_week
+FROM date_source;
 -- WRITE CTE FOR date, fact sheet and INSERT INTO statements for them
