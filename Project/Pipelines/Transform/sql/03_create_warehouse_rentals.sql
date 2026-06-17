@@ -224,4 +224,82 @@ SELECT
     TRIM(TO_CHAR(full_date, 'Month')) AS month_name,
     TRIM(TO_CHAR(full_date, 'Day')) AS day_of_week
 FROM date_source;
--- WRITE CTE FOR date, fact sheet and INSERT INTO statements for them
+
+-- fact_rental_listing_snapshot CTE and insert statement
+-- further checking of rent_min to rent_max needed
+WITH fact_source AS (
+    SELECT 
+        dl.listing_key,
+        dloc.location_key,
+        dp.property_key,
+        dd.date_key,
+        s.rent_min_clean,
+        s.rent_max_clean,
+        s.rent_avg,
+        s.rent_bound_type,
+        s.beds_avg,
+        s.bath_avg,
+        s.size_avg,
+        s.images_count,
+        s.loaded_at
+    FROM staging.stg_rental_listings s
+    LEFT JOIN warehouse.dim_listing dl ON s.listing_id = dl.listing_id
+    LEFT JOIN warehouse.dim_location dloc ON s.street IS NOT DISTINCT FROM dloc.street
+      AND s.postal_code IS NOT DISTINCT FROM dloc.postal_code
+      AND s.longitude IS NOT DISTINCT FROM dloc.longitude
+      AND s.latitude IS NOT DISTINCT FROM dloc.latitude
+    LEFT JOIN warehouse.dim_property dp ON COALESCE(s.property_type, 'unknown') = dp.property_type
+    LEFT JOIN warehouse.dim_date dd ON s.loaded_at::date = dd.full_date
+    WHERE s.has_rent = TRUE
+      AND s.invalid_rent_range = FALSE
+      AND s.invalid_beds_range = FALSE
+      AND s.invalid_bath_range = FALSE
+      AND s.invalid_size_range = FALSE
+)
+
+INSERT INTO warehouse.fact_rental_listing_snapshot (
+    listing_key,
+    location_key,
+    property_key,
+    date_key,
+    rent_min,
+    rent_max,
+    rent_representative,
+    rent_bound_type,
+    beds_avg,
+    bath_avg,
+    size_avg,
+    rent_per_bed,
+    rent_per_sqft,
+    images_count,
+    loaded_at
+)
+SELECT
+    listing_key,
+    location_key,
+    property_key,
+    date_key,
+    rent_min_clean AS rent_min,
+    rent_max_clean AS rent_max,
+    rent_avg AS rent_representative,
+    rent_bound_type,
+    beds_avg,
+    bath_avg,
+    size_avg,
+    CASE
+        WHEN beds_avg IS NOT NULL AND beds_avg > 0
+            THEN rent_avg / beds_avg
+        ELSE NULL
+    END AS rent_per_bed,
+    CASE
+        WHEN size_avg IS NOT NULL AND size_avg > 0
+            THEN rent_avg / size_avg
+        ELSE NULL
+    END AS rent_per_sqft,
+    images_count,
+    loaded_at
+FROM fact_source
+WHERE listing_key IS NOT NULL
+  AND location_key IS NOT NULL
+  AND property_key IS NOT NULL
+  AND date_key IS NOT NULL;
