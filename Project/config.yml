@@ -1,1 +1,37 @@
-# The config file, currently a placeholder
+rentals_ca:
+  graphql_url: "https://rentals.ca/graphql"
+
+  first_value: 2000
+
+  output_file: "rentals_ca_listings.parquet"
+
+  cities:
+    - city: "Toronto"
+      province: "ON"
+      slug: "toronto"
+      target_url: "https://rentals.ca/toronto"
+      named_area: "toronto, on, ca"
+
+    - city: "Vancouver"
+      province: "BC"
+      slug: "vancouver"
+      target_url: "https://rentals.ca/vancouver"
+      named_area: "vancouver, bc, ca"
+
+    - city: "Montreal"
+      province: "QC"
+      slug: "montreal"
+      target_url: "https://rentals.ca/montreal"
+      named_area: "montreal, qc, ca"
+
+    - city: "Calgary"
+      province: "AB"
+      slug: "calgary"
+      target_url: "https://rentals.ca/calgary"
+      named_area: "calgary, ab, ca"
+
+    - city: "Ottawa"
+      province: "ON"
+      slug: "ottawa"
+      target_url: "https://rentals.ca/ottawa"
+      named_area: "ottawa, on, ca"
