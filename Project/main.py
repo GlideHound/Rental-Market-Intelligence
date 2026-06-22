@@ -1,3 +1,4 @@
+import yaml
 from pathlib import Path
 from sqlalchemy import text
 from Pipelines.Ingestion.rentals_ca_ingestion import run_ingestion
@@ -12,9 +13,14 @@ def run_sql_script(engine, sql_path: Path):
 
 def main():
     base_dir = Path(__file__).resolve().parent
+    config_path = base_dir / "config.yml"
+
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+
     engine = create_db_engine()
 
-    run_ingestion()
+    run_ingestion(config)
     run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "00_create_schemas.sql")
     run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "01_create_raw_rentals.sql")
     run_loader()
