@@ -20,6 +20,6 @@ def main():
     run_loader()
     run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "02_create_staging_rentals.sql")
     run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "03_create_warehouse_rentals.sql")
-
+    run_sql_script(engine, base_dir / "Pipelines" / "Transform" / "sql" / "04_create_mart_rental_summary.sql")
 if __name__ == "__main__":
     main()
