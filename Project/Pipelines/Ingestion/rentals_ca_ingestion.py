@@ -1,7 +1,6 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 import pandas as pd
-import json
 
 # currently it gets the listings for city of toronto
 
@@ -214,7 +213,7 @@ def fetch_all_batches(page, auth_header, first_value=2000):
         print("New unique rows added:", new_count)
         print("Unique total so far:", len(all_nodes))
 
-        if page_info["hasNextPage"] == False:
+        if not page_info["hasNextPage"]:
             break
 
         cursor = page_info["endCursor"]
@@ -266,11 +265,12 @@ def build_df(all_nodes: list):
     return df
 
 
-# Name: main()
-# Purpose: The driver function
+# Name: run_ingestion()
+# Purpose: run_ingestion() wires up everything in rentals_ca_ingestion script and serves as
+#          the purpose of the driver function
 # Parameters: None
 # Returns: None
-def main():
+def run_ingestion():
     p, browser, page = open_browser(target_url)
     auth_header = capture_auth_header(page)
 
@@ -290,6 +290,13 @@ def main():
 
     browser.close()
     p.stop()
+
+# Name: main()
+# Purpose: the driver function
+# Parameters: None
+# Returns: None
+def main():
+    run_ingestion()
 
 if __name__ == "__main__":
     main()
