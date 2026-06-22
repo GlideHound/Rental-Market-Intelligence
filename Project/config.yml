@@ -5,6 +5,8 @@ rentals_ca:
 
   output_file: "rentals_ca_listings.parquet"
 
+  max_workers: 4
+
   cities:
     - city: "Toronto"
       province: "ON"
@@ -35,3 +37,9 @@ rentals_ca:
       slug: "ottawa"
       target_url: "https://rentals.ca/ottawa"
       named_area: "ottawa, on, ca"
+
+    - city: "Winnipeg"
+      province: "ON"
+      slug: "winnipeg"
+      target_url: "https://rentals.ca/winnipeg"
+      named_area: "winnipeg, on, ca"

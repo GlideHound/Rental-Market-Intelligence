@@ -1,6 +1,8 @@
+import pandas as pd
+import time
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 query = """
 query RentalListingSearch(
@@ -85,6 +87,15 @@ query RentalListingSearch(
 }
 """
 
+
+# Name: 
+# Purpose: 
+# Parameters: 
+# Returns: 
+def get_cookie_dict(page):
+    cookies = page.context.cookies()
+    return {cookie["name"]: cookie["value"] for cookie in cookies}
+
 # Name: open_browser()
 # Purpose: This function opens playwright, creates a page and goes to the url to bypass cloudflare
 # Parameters: url (str): This is the url of the website we wish to scrape
@@ -120,13 +131,11 @@ def capture_auth_header(page, graphql_url):
 
     return auth_state["auth_header"]
 
+
 # Name: fetch_one_batch()
 # Purpose: This function defines the payload and sends api request to get one batch of data returned
 #          in json format
-# Parameters: page: This is the tab opened with the website url
-#             auth_header: This is the authorization header we captured
-#             first_value: This is the maximum number of entries of data we want in a batch
-#             after_cursor: This is the after cursor key we will use later in pagination
+# Parameters: 
 # Returns: Scraped rental listings in json format
 def fetch_one_batch(page, graphql_url, auth_header, city_config, first_value, after_cursor=None):
     payload = {
@@ -155,7 +164,7 @@ def fetch_one_batch(page, graphql_url, auth_header, city_config, first_value, af
                 },
                 body: JSON.stringify(payload)
             });
-            
+
             return await response.json();
         }
         """,
@@ -168,11 +177,10 @@ def fetch_one_batch(page, graphql_url, auth_header, city_config, first_value, af
 
     return data
 
+
 # Name: fetch_all_batches()
 # Purpose: This function loops through all the batches and returns the scraped data
-# Parameters: page: This is the tab opened with the website url
-#             auth_header: This is the authorization header we captured
-#             first_value: This is the maximum number of entries of data we want in a batch
+# Parameters: 
 # Returns: A python list that contains all the scraped data
 def fetch_all_batches(page, graphql_url, auth_header, city_config, first_value=2000):
     cursor = None
@@ -209,13 +217,11 @@ def fetch_all_batches(page, graphql_url, auth_header, city_config, first_value=2
             seen_ids.add(listing_id)
             all_nodes.append(node)
             new_count += 1
-        
-        # can delete or comment out later since these are for sanity check purpose
-        print(f"\nBatch {batch_num}")
+
+        print(f"\n{city_config['city']} - Batch {batch_num}")
         print("Total count:", meta["totalCount"])
         print("Rows returned:", len(edges))
         print("Has next page:", page_info["hasNextPage"])
-        print("End cursor:", page_info["endCursor"])
         print("New unique rows added:", new_count)
         print("Unique total so far:", len(all_nodes))
 
@@ -226,6 +232,7 @@ def fetch_all_batches(page, graphql_url, auth_header, city_config, first_value=2
         batch_num += 1
 
     return all_nodes
+
 
 # Name: build_df()
 # Purpose: This function flattens the dictionaries and lists in the returned json data file
@@ -273,40 +280,104 @@ def build_df(all_nodes: list, city_config: dict):
     return df
 
 
+# Name:
+# Purpose: 
+# Parameters: 
+# Returns: 
+def fetch_city_with_browser(graphql_url, city_config, first_value):
+    p = None
+    browser = None
+
+    try:
+        print(f"\nStarting browser for {city_config['city']}, {city_config['province']}")
+
+        p, browser, page = open_browser(city_config["target_url"])
+        auth_header = capture_auth_header(page, graphql_url)
+
+        if auth_header is None:
+            raise RuntimeError("Did not capture authorization header")
+
+        all_nodes = fetch_all_batches(
+            page=page,
+            graphql_url=graphql_url,
+            auth_header=auth_header,
+            city_config=city_config,
+            first_value=first_value
+        )
+
+        df = build_df(all_nodes, city_config)
+
+        print(f"\nFinished {city_config['city']}: {len(df)} rows")
+
+        return df
+
+    finally:
+        if browser is not None:
+            browser.close()
+
+        if p is not None:
+            p.stop()
+
+
 # Name: run_ingestion()
 # Purpose: run_ingestion() wires up everything in rentals_ca_ingestion script and serves as
 #          the purpose of the driver function
 # Parameters: config: The configurations in config.yml
 # Returns: None
 def run_ingestion(config):
+    start_time = time.time()
     rentals_config = config["rentals_ca"]
 
     graphql_url = rentals_config["graphql_url"]
     first_value = rentals_config["first_value"]
     cities = rentals_config["cities"]
     output_file = rentals_config["output_file"]
+    max_workers = rentals_config.get("max_workers", 2)
 
-    # For now, only test the first city in config.yml
-    city_config = cities[0]
+    city_dfs = []
+    failed_cities = []
 
-    p, browser, page = open_browser(city_config["target_url"])
-    auth_header = capture_auth_header(page, graphql_url)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_city = {
+            executor.submit(
+                fetch_city_with_browser,
+                graphql_url,
+                city_config,
+                first_value
+            ): city_config
+            for city_config in cities
+        }
 
-    if auth_header is None:
-        print("Did not capture authorization header")
-        browser.close()
-        p.stop()
+        for future in as_completed(future_to_city):
+            city_config = future_to_city[future]
+
+            try:
+                df_city = future.result()
+                city_dfs.append(df_city)
+
+            except Exception as error:
+                print(f"\nFailed to fetch {city_config['city']}, {city_config['province']}")
+                print("Error:", error)
+                failed_cities.append(city_config)
+
+    if not city_dfs:
+        print("No city data was successfully fetched.")
         return
 
-    all_nodes = fetch_all_batches(
-        page=page,
-        graphql_url=graphql_url,
-        auth_header=auth_header,
-        city_config=city_config,
-        first_value=first_value
-    )
+    df = pd.concat(city_dfs, ignore_index=True)
 
-    df = build_df(all_nodes, city_config)
+    before_dedup = len(df)
+    df = df.drop_duplicates(subset=["listing_id"])
+    after_dedup = len(df)
+
+    print(f"\nRows before deduplication: {before_dedup}")
+    print(f"Rows after deduplication: {after_dedup}")
+    print(f"Duplicates removed: {before_dedup - after_dedup}")
+
+    if failed_cities:
+        print("\nFailed cities:")
+        for city in failed_cities:
+            print(f"- {city['city']}, {city['province']}")
 
     base_dir = Path(__file__).resolve().parents[2]
     output_path = base_dir / "Data" / "Raw" / output_file
@@ -314,5 +385,11 @@ def run_ingestion(config):
 
     df.to_parquet(output_path, index=False)
 
-    browser.close()
-    p.stop()
+    end_time = time.time()
+    elapsed_seconds = end_time - start_time
+    print(f"\nIngestion completed in {elapsed_seconds:.2f} seconds")
+
+    print(f"\nSaved combined rentals data to: {output_path}")
+
+
+# New df has two NEW COLUMNS: city and province, need to change sql scripts
