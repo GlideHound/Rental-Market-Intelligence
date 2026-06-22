@@ -2,10 +2,6 @@ from playwright.sync_api import sync_playwright
 from pathlib import Path
 import pandas as pd
 
-# currently it gets the listings for city of toronto
-
-graphql_url = "https://rentals.ca/graphql"
-target_url = "https://rentals.ca/toronto"
 query = """
 query RentalListingSearch(
   $after: String,
@@ -105,8 +101,9 @@ def open_browser(url: str):
 # Purpose: This function listens to the request and captures the authorization in graphql response
 #          headers and returns it
 # Parameters: page : This is the tab with the website url
+#             graphql_url: This is the url for the graphql API
 # Returns: A python dictionary that contains the authorization header
-def capture_auth_header(page):
+def capture_auth_header(page, graphql_url):
     auth_state = {"auth_header": None}
 
     # helper function
@@ -131,7 +128,7 @@ def capture_auth_header(page):
 #             first_value: This is the maximum number of entries of data we want in a batch
 #             after_cursor: This is the after cursor key we will use later in pagination
 # Returns: Scraped rental listings in json format
-def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
+def fetch_one_batch(page, graphql_url, auth_header, city_config, first_value, after_cursor=None):
     payload = {
         "operationName": "RentalListingSearch",
         "query": query,
@@ -140,7 +137,7 @@ def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
             "after": after_cursor,
             "first": first_value,
             "place": {
-                "namedArea": "toronto, on, ca"
+                "namedArea": city_config["named_area"]
             },
             "sortType": "cheapest"
         }
@@ -177,14 +174,23 @@ def fetch_one_batch(page, auth_header, first_value, after_cursor=None):
 #             auth_header: This is the authorization header we captured
 #             first_value: This is the maximum number of entries of data we want in a batch
 # Returns: A python list that contains all the scraped data
-def fetch_all_batches(page, auth_header, first_value=2000):
+def fetch_all_batches(page, graphql_url, auth_header, city_config, first_value=2000):
     cursor = None
     seen_ids = set()
     all_nodes = []
     batch_num = 1
 
+    print(f"\nFetching {city_config['city']}, {city_config['province']}")
+
     while True:
-        data = fetch_one_batch(page, auth_header, first_value, cursor)
+        data = fetch_one_batch(
+            page=page,
+            graphql_url=graphql_url,
+            auth_header=auth_header,
+            city_config=city_config,
+            first_value=first_value,
+            after_cursor=cursor
+        )
 
         rental_listings = data["data"]["rentalListings"]
         meta = rental_listings["meta"]
@@ -226,7 +232,7 @@ def fetch_all_batches(page, auth_header, first_value=2000):
 #          and put them into the corresponding columns of a created pandas dataframe
 # Parameters: all_nodes (list): This is the list of all the nodes extracted
 # Returns: A pandas dataframe that contains all the data returned by API call
-def build_df(all_nodes: list):
+def build_df(all_nodes: list, city_config: dict):
 
     def extract_row(node):
         address = node.get("address", {})
@@ -239,6 +245,8 @@ def build_df(all_nodes: list):
         return {
             "name": node["name"],
             "listing_id": node["id"],
+            "city": city_config["city"],
+            "province": city_config["province"],
             "street": address.get("street"),
             "postal_code": address.get("postalCode"),
             "longitude": location[0] if len(location) > 0 else None,
@@ -268,11 +276,21 @@ def build_df(all_nodes: list):
 # Name: run_ingestion()
 # Purpose: run_ingestion() wires up everything in rentals_ca_ingestion script and serves as
 #          the purpose of the driver function
-# Parameters: None
+# Parameters: config: The configurations in config.yml
 # Returns: None
-def run_ingestion():
-    p, browser, page = open_browser(target_url)
-    auth_header = capture_auth_header(page)
+def run_ingestion(config):
+    rentals_config = config["rentals_ca"]
+
+    graphql_url = rentals_config["graphql_url"]
+    first_value = rentals_config["first_value"]
+    cities = rentals_config["cities"]
+    output_file = rentals_config["output_file"]
+
+    # For now, only test the first city in config.yml
+    city_config = cities[0]
+
+    p, browser, page = open_browser(city_config["target_url"])
+    auth_header = capture_auth_header(page, graphql_url)
 
     if auth_header is None:
         print("Did not capture authorization header")
@@ -280,23 +298,21 @@ def run_ingestion():
         p.stop()
         return
 
-    all_nodes = fetch_all_batches(page, auth_header, first_value=2000)
-    df = build_df(all_nodes)
-    
+    all_nodes = fetch_all_batches(
+        page=page,
+        graphql_url=graphql_url,
+        auth_header=auth_header,
+        city_config=city_config,
+        first_value=first_value
+    )
+
+    df = build_df(all_nodes, city_config)
+
     base_dir = Path(__file__).resolve().parents[2]
-    output_path = base_dir / "Data" / "Raw" / "toronto_rentals.parquet"
+    output_path = base_dir / "Data" / "Raw" / output_file
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
     df.to_parquet(output_path, index=False)
 
     browser.close()
     p.stop()
-
-# Name: main()
-# Purpose: the driver function
-# Parameters: None
-# Returns: None
-def main():
-    run_ingestion()
-
-if __name__ == "__main__":
-    main()
