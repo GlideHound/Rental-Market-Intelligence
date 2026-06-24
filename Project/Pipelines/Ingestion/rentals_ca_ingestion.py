@@ -325,18 +325,20 @@ def fetch_city_with_browser(graphql_url, city_config, first_value):
 # Parameters: config: The configurations in config.yml
 # Returns: None
 def run_ingestion(config):
-    start_time = time.time()
     rentals_config = config["rentals_ca"]
 
     graphql_url = rentals_config["graphql_url"]
     first_value = rentals_config["first_value"]
     cities = rentals_config["cities"]
     output_file = rentals_config["output_file"]
-    max_workers = rentals_config.get("max_workers", 2)
+    max_workers = rentals_config.get("max_workers", 3)
+
+    start_time = time.time()
 
     city_dfs = []
     failed_cities = []
 
+    # First pass: parallel scraping
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_city = {
             executor.submit(
@@ -357,8 +359,36 @@ def run_ingestion(config):
 
             except Exception as error:
                 print(f"\nFailed to fetch {city_config['city']}, {city_config['province']}")
-                print("Error:", error)
+                print("Error type:", type(error).__name__)
+                print("Error message:", error)
                 failed_cities.append(city_config)
+
+    # Second pass: slow retry
+    retry_failed_cities = []
+
+    if failed_cities:
+        print("\nRetrying failed cities one by one...\n")
+
+        for city_config in failed_cities:
+            try:
+                print(f"Retrying {city_config['city']}, {city_config['province']}")
+
+                time.sleep(5)
+
+                df_city = fetch_city_with_browser(
+                    graphql_url=graphql_url,
+                    city_config=city_config,
+                    first_value=first_value
+                )
+
+                city_dfs.append(df_city)
+                print(f"Retry succeeded for {city_config['city']}, {city_config['province']}")
+
+            except Exception as error:
+                print(f"\nRetry failed for {city_config['city']}, {city_config['province']}")
+                print("Error type:", type(error).__name__)
+                print("Error message:", error)
+                retry_failed_cities.append(city_config)
 
     if not city_dfs:
         print("No city data was successfully fetched.")
@@ -374,10 +404,13 @@ def run_ingestion(config):
     print(f"Rows after deduplication: {after_dedup}")
     print(f"Duplicates removed: {before_dedup - after_dedup}")
 
-    if failed_cities:
-        print("\nFailed cities:")
-        for city in failed_cities:
+    if retry_failed_cities:
+        print("\nCities that still failed after retry:")
+        for city in retry_failed_cities:
             print(f"- {city['city']}, {city['province']}")
+
+    elapsed_seconds = time.time() - start_time
+    print(f"\nIngestion completed in {elapsed_seconds:.2f} seconds")
 
     base_dir = Path(__file__).resolve().parents[2]
     output_path = base_dir / "Data" / "Raw" / output_file
@@ -385,11 +418,4 @@ def run_ingestion(config):
 
     df.to_parquet(output_path, index=False)
 
-    end_time = time.time()
-    elapsed_seconds = end_time - start_time
-    print(f"\nIngestion completed in {elapsed_seconds:.2f} seconds")
-
     print(f"\nSaved combined rentals data to: {output_path}")
-
-
-# New df has two NEW COLUMNS: city and province, need to change sql scripts

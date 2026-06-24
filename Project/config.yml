@@ -2,7 +2,7 @@ rentals_ca:
   graphql_url: "https://rentals.ca/graphql"
   first_value: 2000
   output_file: "rentals_ca_listings.parquet"
-  max_workers: 3
+  max_workers: 5
 
   cities:
     - city: "Toronto"
