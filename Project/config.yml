@@ -39,7 +39,7 @@ rentals_ca:
       named_area: "ottawa, on, ca"
 
     - city: "Winnipeg"
-      province: "ON"
+      province: "MB"
       slug: "winnipeg"
       target_url: "https://rentals.ca/winnipeg"
-      named_area: "winnipeg, on, ca"
+      named_area: "winnipeg, mb, ca"

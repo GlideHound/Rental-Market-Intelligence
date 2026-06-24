@@ -83,12 +83,12 @@ GROUP BY
     month,
     quarter,
     city,
-    province
+    province,
     postal_fsa,
     property_group
 ORDER BY
     full_date,
     province,
-    city
+    city,
     postal_fsa,
     property_group;
