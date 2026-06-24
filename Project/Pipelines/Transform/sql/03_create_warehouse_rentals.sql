@@ -17,6 +17,8 @@ CREATE TABLE warehouse.dim_listing (
 
 CREATE TABLE warehouse.dim_location (
     location_key SERIAL PRIMARY KEY,
+    city TEXT,
+    province TEXT,
     street TEXT,
     postal_code TEXT,
     postal_fsa TEXT,
@@ -127,6 +129,8 @@ WHERE rn = 1;
 -- dim_location CTE and insert statement
 WITH location_source AS (
     SELECT DISTINCT
+        city,
+        province,
         street,
         postal_code,
         CASE
@@ -137,13 +141,17 @@ WITH location_source AS (
         longitude,
         latitude
     FROM staging.stg_rental_listings
-    WHERE street IS NOT NULL
+    WHERE city IS NOT NULL
+       OR province IS NOT NULL
+       OR street IS NOT NULL
        OR postal_code IS NOT NULL
        OR longitude IS NOT NULL
        OR latitude IS NOT NULL
 )
 
 INSERT INTO warehouse.dim_location (
+    city,
+    province,
     street,
     postal_code,
     postal_fsa,
@@ -151,6 +159,8 @@ INSERT INTO warehouse.dim_location (
     latitude
 )
 SELECT
+    city,
+    province,
     street,
     postal_code,
     postal_fsa,
@@ -244,10 +254,12 @@ WITH fact_source AS (
         s.loaded_at
     FROM staging.stg_rental_listings s
     LEFT JOIN warehouse.dim_listing dl ON s.listing_id = dl.listing_id
-    LEFT JOIN warehouse.dim_location dloc ON s.street IS NOT DISTINCT FROM dloc.street
-      AND s.postal_code IS NOT DISTINCT FROM dloc.postal_code
-      AND s.longitude IS NOT DISTINCT FROM dloc.longitude
-      AND s.latitude IS NOT DISTINCT FROM dloc.latitude
+    LEFT JOIN warehouse.dim_location dloc ON s.city IS NOT DISTINCT FROM dloc.city
+        AND s.province IS NOT DISTINCT FROM dloc.province
+        AND s.street IS NOT DISTINCT FROM dloc.street
+        AND s.postal_code IS NOT DISTINCT FROM dloc.postal_code
+        AND s.longitude IS NOT DISTINCT FROM dloc.longitude
+        AND s.latitude IS NOT DISTINCT FROM dloc.latitude
     LEFT JOIN warehouse.dim_property dp ON COALESCE(s.property_type, 'unknown') = dp.property_type
     LEFT JOIN warehouse.dim_date dd ON s.loaded_at::date = dd.full_date
     WHERE s.has_rent = TRUE

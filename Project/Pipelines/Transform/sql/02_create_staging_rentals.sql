@@ -8,6 +8,8 @@ WITH cleaned AS (
     SELECT 
         TRIM(name) AS listing_name,
         listing_id,
+        TRIM(city) AS city,
+        UPPER(TRIM(province)) AS province,
         NULLIF(TRIM(street), '') AS street,
         UPPER(REPLACE(TRIM(postal_code), ' ', '')) AS postal_code,
         longitude,
@@ -76,6 +78,8 @@ WITH cleaned AS (
 SELECT 
     listing_name,
     listing_id,
+    city,
+    province,
     street,
     postal_code,
     longitude,

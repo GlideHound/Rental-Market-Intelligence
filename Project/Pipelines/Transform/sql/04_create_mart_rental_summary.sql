@@ -1,7 +1,7 @@
 -- create_mart_rental_summary.sql
 -- Purpose: create mart tables for analysis ready use
-DROP TABLE IF EXISTS mart.rental_listing_enriched;
 DROP TABLE IF EXISTS mart.rent_summary_by_property_location;
+DROP TABLE IF EXISTS mart.rental_listing_enriched;
 
 -- create the rental_listing_enriched table. This table joins the dimension and fact tables
 -- produced in warehouse and is later used in producing aggregated tables for analysis use
@@ -10,6 +10,8 @@ SELECT
     f.snapshot_key,
     dl.listing_id,
     dl.listing_name,
+    dloc.city,
+    dloc.province,
     dloc.street,
     dloc.postal_code,
     dloc.postal_fsa,
@@ -48,6 +50,8 @@ SELECT
     year,
     month,
     quarter,
+    city,
+    province,
     postal_fsa,
     property_group,
     COUNT(*) AS listing_count,
@@ -78,9 +82,13 @@ GROUP BY
     year,
     month,
     quarter,
+    city,
+    province
     postal_fsa,
     property_group
 ORDER BY
     full_date,
+    province,
+    city
     postal_fsa,
     property_group;

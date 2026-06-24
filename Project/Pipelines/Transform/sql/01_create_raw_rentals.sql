@@ -6,6 +6,8 @@ DROP TABLE IF EXISTS raw.rental_listings;
 CREATE TABLE raw.rental_listings (
     name TEXT,
     listing_id TEXT PRIMARY KEY,
+    city TEXT,
+    province TEXT,
     street TEXT,
     postal_code TEXT,
     longitude DOUBLE PRECISION,

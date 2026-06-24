@@ -55,7 +55,7 @@ def load_df_to_postgre(df: pd.DataFrame, engine):
 # Returns: None
 def run_loader():
     base_dir = Path(__file__).resolve().parents[2]
-    file_path_parquet = base_dir / "Data" / "Raw" / "toronto_rentals.parquet"
+    file_path_parquet = base_dir / "Data" / "Raw" / "rentals_ca_listings.parquet"
 
     df_raw = read_raw_parquet(file_path_parquet)
     engine = create_db_engine()
