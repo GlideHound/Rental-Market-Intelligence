@@ -1,11 +1,8 @@
 rentals_ca:
   graphql_url: "https://rentals.ca/graphql"
-
   first_value: 2000
-
   output_file: "rentals_ca_listings.parquet"
-
-  max_workers: 4
+  max_workers: 3
 
   cities:
     - city: "Toronto"
@@ -13,12 +10,6 @@ rentals_ca:
       slug: "toronto"
       target_url: "https://rentals.ca/toronto"
       named_area: "toronto, on, ca"
-
-    - city: "Vancouver"
-      province: "BC"
-      slug: "vancouver"
-      target_url: "https://rentals.ca/vancouver"
-      named_area: "vancouver, bc, ca"
 
     - city: "Montreal"
       province: "QC"
@@ -38,8 +29,164 @@ rentals_ca:
       target_url: "https://rentals.ca/ottawa"
       named_area: "ottawa, on, ca"
 
+    - city: "Edmonton"
+      province: "AB"
+      slug: "edmonton"
+      target_url: "https://rentals.ca/edmonton"
+      named_area: "edmonton, ab, ca"
+
+    - city: "Mississauga"
+      province: "ON"
+      slug: "mississauga"
+      target_url: "https://rentals.ca/mississauga"
+      named_area: "mississauga, on, ca"
+
     - city: "Winnipeg"
       province: "MB"
       slug: "winnipeg"
       target_url: "https://rentals.ca/winnipeg"
       named_area: "winnipeg, mb, ca"
+
+    - city: "Vancouver"
+      province: "BC"
+      slug: "vancouver"
+      target_url: "https://rentals.ca/vancouver"
+      named_area: "vancouver, bc, ca"
+
+    - city: "Brampton"
+      province: "ON"
+      slug: "brampton"
+      target_url: "https://rentals.ca/brampton"
+      named_area: "brampton, on, ca"
+
+    - city: "Hamilton"
+      province: "ON"
+      slug: "hamilton"
+      target_url: "https://rentals.ca/hamilton"
+      named_area: "hamilton, on, ca"
+
+    - city: "Surrey"
+      province: "BC"
+      slug: "surrey"
+      target_url: "https://rentals.ca/surrey"
+      named_area: "surrey, bc, ca"
+
+    - city: "Quebec City"
+      province: "QC"
+      slug: "quebec-city"
+      target_url: "https://rentals.ca/quebec-city"
+      named_area: "quebec city, qc, ca"
+
+    - city: "Halifax"
+      province: "NS"
+      slug: "halifax"
+      target_url: "https://rentals.ca/halifax"
+      named_area: "halifax, ns, ca"
+
+    - city: "Fredericton"
+      province: "NB"
+      slug: "fredericton"
+      target_url: "https://rentals.ca/fredericton"
+      named_area: "fredericton, nb, ca"
+
+    - city: "Charlottetown"
+      province: "PE"
+      slug: "charlottetown"
+      target_url: "https://rentals.ca/charlottetown"
+      named_area: "charlottetown, pe, ca"
+
+    - city: "St. John's"
+      province: "NL"
+      slug: "st-johns"
+      target_url: "https://rentals.ca/st-johns"
+      named_area: "st. john's, nl, ca"
+
+    - city: "Regina"
+      province: "SK"
+      slug: "regina"
+      target_url: "https://rentals.ca/regina"
+      named_area: "regina, sk, ca"
+
+    - city: "Victoria"
+      province: "BC"
+      slug: "victoria"
+      target_url: "https://rentals.ca/victoria"
+      named_area: "victoria, bc, ca"
+
+    - city: "Laval"
+      province: "QC"
+      slug: "laval"
+      target_url: "https://rentals.ca/laval"
+      named_area: "laval, qc, ca"
+
+    - city: "London"
+      province: "ON"
+      slug: "london"
+      target_url: "https://rentals.ca/london"
+      named_area: "london, on, ca"
+
+    - city: "Markham"
+      province: "ON"
+      slug: "markham"
+      target_url: "https://rentals.ca/markham"
+      named_area: "markham, on, ca"
+
+    - city: "Vaughan"
+      province: "ON"
+      slug: "vaughan"
+      target_url: "https://rentals.ca/vaughan"
+      named_area: "vaughan, on, ca"
+
+    - city: "Gatineau"
+      province: "QC"
+      slug: "gatineau"
+      target_url: "https://rentals.ca/gatineau"
+      named_area: "gatineau, qc, ca"
+
+    - city: "Saskatoon"
+      province: "SK"
+      slug: "saskatoon"
+      target_url: "https://rentals.ca/saskatoon"
+      named_area: "saskatoon, sk, ca"
+
+    - city: "Kitchener"
+      province: "ON"
+      slug: "kitchener"
+      target_url: "https://rentals.ca/kitchener"
+      named_area: "kitchener, on, ca"
+
+    - city: "Windsor"
+      province: "ON"
+      slug: "windsor"
+      target_url: "https://rentals.ca/windsor"
+      named_area: "windsor, on, ca"
+
+    - city: "Burnaby"
+      province: "BC"
+      slug: "burnaby"
+      target_url: "https://rentals.ca/burnaby"
+      named_area: "burnaby, bc, ca"
+
+    - city: "Richmond"
+      province: "BC"
+      slug: "richmond"
+      target_url: "https://rentals.ca/richmond"
+      named_area: "richmond, bc, ca"
+
+    - city: "Oakville"
+      province: "ON"
+      slug: "oakville"
+      target_url: "https://rentals.ca/oakville"
+      named_area: "oakville, on, ca"
+
+    - city: "Burlington"
+      province: "ON"
+      slug: "burlington"
+      target_url: "https://rentals.ca/burlington"
+      named_area: "burlington, on, ca"
+
+    - city: "Waterloo"
+      province: "ON"
+      slug: "waterloo"
+      target_url: "https://rentals.ca/waterloo"
+      named_area: "waterloo, on, ca"
